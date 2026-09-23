@@ -1,6 +1,6 @@
 <div align="center">
   <h1>⚙️ FreshCore Native ⚙️</h1>
-  <p><strong>Advanced Android KernelSU Maintenance Engine</strong></p>
+  <p><strong>Android KernelSU Maintenance Engine</strong></p>
   <p>Engineered in pure C++ by <strong>Kiran_embedded</strong></p>
 
   <a href="https://github.com/kiran-embedded/FreshCoreNative">
@@ -92,7 +92,7 @@ The logging engine tracks:
 - Individual `tinymix` ALSA route success/failure statuses.
 
 ### 🖥️ Live Monitoring (Termux)
-If you are an advanced user and want to watch the C++ engine make decisions in real-time, you can stream the log live using a terminal emulator like Termux:
+If you want to watch the C++ engine make decisions in real-time, you can stream the log live using a terminal emulator like Termux:
 
 ```bash
 su

@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     // where /storage/emulated/0 might be an empty tmpfs stub.
     freshcore::logging::Initialize("/data/media/0/Download/FreshCore_Report.txt");
     LOGI("==================================================");
-    LOGI("FreshCore Native v1.0 (Ultimate DeepLevel) started.");
+    LOGI("FreshCore Native v1.0 started.");
     LOGI("==================================================");
 
     if (!freshcore::config::LoadConfig("/data/adb/freshcore/config.conf")) {
