@@ -1,0 +1,6 @@
+id=freshcore
+name=FreshCore Native
+version=1.0
+versionCode=1
+author=Developer
+description=Adaptive Native Android Maintenance Engine for zero-overhead background cache management.
