@@ -77,6 +77,30 @@ Imagine you finish using a heavy social media app and lock your phone. Here is e
 
 Simply remove the module in KernelSU and reboot. The included uninstall script will automatically clean up the configuration directory, leaving no permanent traces on your device.
 
+## 📋 Logging & Troubleshooting
+
+FreshCore has a built-in logging engine that tracks its state, hardware telemetry (battery %, temperature), and cache-cleaning actions. The log file is automatically rotated at 2MB to prevent it from taking up too much space.
+
+If you ever want to see exactly what FreshCore is doing, you can view the live logs using a terminal emulator app like **Termux**.
+
+1. Open Termux.
+2. Request root access:
+   ```bash
+   su
+   ```
+3. Read the entire log:
+   ```bash
+   cat /data/local/tmp/freshcore.log
+   ```
+   *Or*, watch the logs live as they happen:
+   ```bash
+   tail -f /data/local/tmp/freshcore.log
+   ```
+
+**Common Issues**:
+- **Logs are empty/not updating**: Make sure you have granted Superuser permissions to the app you are using to view the logs. Also, remember that FreshCore only runs when the screen is completely OFF and the device is left idle for 15 minutes.
+- **Module fails to install**: Verify that your device architecture is `arm64-v8a` (64-bit) and you are running Android 11 (API 30) or newer.
+
 ## 🛠️ Building from Source
 
 You will need CMake and the Android NDK (r26b or newer).
