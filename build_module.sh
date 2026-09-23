@@ -37,7 +37,8 @@ cat > module/META-INF/com/google/android/updater-script << 'EOF'
 EOF
 
 cd module
-zip -r9 ../FreshCore-KSU.zip .
+rm -f ../FreshCore-KSU_v1.0.zip
+zip -r9 ../FreshCore-KSU_v1.0.zip .
 cd ..
 
-echo "Done! FreshCore-KSU.zip has been generated."
+echo "Done! FreshCore-KSU_v1.0.zip has been generated."

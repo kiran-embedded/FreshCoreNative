@@ -70,13 +70,56 @@ The logging engine tracks:
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Download
 
-1. Download the latest `FreshCore-KSU.zip` from the [Releases](https://github.com/kiran-embedded/FreshCoreNative/releases) page.
-2. Flash the module using KernelSU.
-3. Reboot your device. 
+1. Download the latest version: **[`FreshCore-KSU_v1.0.zip`](https://github.com/kiran-embedded/FreshCoreNative/releases)**
+2. Open your KernelSU (or Magisk) Manager app.
+3. Go to the Modules tab and select **Install from storage**.
+4. Select `FreshCore-KSU_v1.0.zip` and wait for the custom flashing animation to complete.
+5. Reboot your device.
 
-## 🛠️ Build Instructions
+---
+
+## 📋 DeepLevel Logging & Real-Time Monitoring
+
+FreshCore provides highly detailed, human-readable telemetry logs for debugging and analysis.
+
+**Log Location:** `/Internal Storage/Download/FreshCore_Report.txt`
+
+The logging engine tracks:
+- System state transitions (Boot -> Active -> Idle)
+- Hardware telemetry (Battery %, Temperature °C)
+- Individual `tinymix` ALSA route success/failure statuses.
+
+### 🖥️ Live Monitoring (Termux)
+If you are an advanced user and want to watch the C++ engine make decisions in real-time, you can stream the log live using a terminal emulator like Termux:
+
+```bash
+su
+tail -f /storage/emulated/0/Download/FreshCore_Report.txt
+```
+
+*Note: The engine features an automatic 7-day log rotation mechanism. Logs older than 7 days are automatically purged to prevent storage bloat.*
+
+---
+
+## 🛠️ Troubleshooting & Help
+
+### Q: The log file isn't showing up in my Download folder!
+**A:** Ensure your device has fully booted. KernelSU waits until the boot process is 100% complete before mounting the `/sdcard` storage to write the log safely. If it still doesn't appear, ensure you are running Android 11 (API 30) or newer.
+
+### Q: I see `FAILED: not supported` in my logs for some `tinymix` commands.
+**A:** This is 100% intentional and safe! Different devices route microphones through different audio channels (e.g., `ADC1` vs `ADC2`). FreshCore is designed to be **Universal**, so it tries both. Your phone's audio chip will simply reject the channel it doesn't have, and FreshCore will safely skip it and apply the correct one.
+
+### Q: How do I know the Zero-Lag engine is working?
+**A:** When you wake your device, check the `FreshCore_Report.txt` log. You should immediately see a line stating: `Waking system from Doze to prevent lockscreen lag...`. This confirms the engine successfully fired the `dumpsys unforce` command the exact millisecond you touched your screen.
+
+### Q: How do I uninstall FreshCore?
+**A:** Simply remove or disable the module inside the KernelSU app and reboot. The included `uninstall.sh` script will automatically clean up all cache records, configurations, and binaries, leaving your device completely untouched.
+
+---
+
+## ⚙️ Build Instructions
 
 To compile the C++ source yourself, you require CMake and the Android NDK (r26b+).
 
