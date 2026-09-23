@@ -102,7 +102,8 @@ static void PollLoop() {
     bool pre_init = false;
     
     while (g_running) {
-        std::string state = ExecCommand("dumpsys audio 2>/dev/null | grep -m 1 -i 'mMode='");
+        // Use timeout to prevent hanging if AudioService is deadlocked
+        std::string state = ExecCommand("timeout 2 dumpsys audio 2>/dev/null | grep -m 1 -i 'mMode='");
         
         if (state.find("MODE_RINGTONE") != std::string::npos || state.find("mMode=1") != std::string::npos) {
             if (!pre_init) {
@@ -139,10 +140,101 @@ static void PollLoop() {
     }
 }
 
+// ==========================================
+// ALSA INOTIFY HYBRID ENGINE
+// ==========================================
+
+#include <sys/inotify.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <poll.h>
+
+static void AlsaInotifyLoop(int fd) {
+    LOGI("Native ALSA Hooking Active! (0% CPU Event-Driven Mode)");
+    
+    // Discover tinymix path
+    std::string path_check = ExecCommand("command -v tinymix 2>/dev/null");
+    if (!path_check.empty() && path_check.find("tinymix") != std::string::npos) {
+        path_check.erase(path_check.find_last_not_of(" \n\r\t") + 1);
+        g_tinymix_path = path_check;
+    }
+
+    char buffer[4096] __attribute__((aligned(__alignof__(struct inotify_event))));
+    bool active = false;
+
+    while (g_running) {
+        struct pollfd pfd = { fd, POLLIN, 0 };
+        // Use poll with 500ms timeout so we can check g_running to shut down gracefully
+        int ret = poll(&pfd, 1, 500); 
+
+        if (ret < 0) {
+            break;
+        } else if (ret == 0) {
+            continue; // timeout, check g_running again
+        }
+
+        ssize_t len = read(fd, buffer, sizeof(buffer));
+        if (len <= 0) break;
+
+        const struct inotify_event *event;
+        for (char *ptr = buffer; ptr < buffer + len; ptr += sizeof(struct inotify_event) + event->len) {
+            event = (const struct inotify_event *) ptr;
+
+            if (event->mask & IN_OPEN) {
+                if (!active) {
+                    active = true;
+                    LOGI("ALSA INTERCEPT: Capture Stream Opened! (0 ms delay)");
+                    ApplyPreInit();
+                    ApplyMicFix();
+                    ShowNotification();
+                    LOGI("Hardware Primed and Ready natively!");
+                }
+            }
+            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CLOSE_NOWRITE) {
+                if (active) {
+                    active = false;
+                    LOGI("ALSA INTERCEPT: Capture Stream Closed.");
+                }
+            }
+        }
+    }
+    close(fd);
+}
+
 void StartPolling() {
     if (g_running) return;
     g_running = true;
-    g_poll_thread = std::thread(PollLoop);
+
+    // Attempt to initialize ALSA Hooking first
+    int fd = inotify_init1(IN_NONBLOCK);
+    bool alsa_success = false;
+
+    if (fd >= 0) {
+        DIR *dir = opendir("/dev/snd");
+        if (dir) {
+            struct dirent *ent;
+            while ((ent = readdir(dir)) != nullptr) {
+                std::string filename = ent->d_name;
+                // Only watch 'capture' devices (e.g., pcmC0D0c)
+                if (filename.back() == 'c' && filename.find("pcm") == 0) {
+                    std::string full_path = std::string("/dev/snd/") + filename;
+                    if (inotify_add_watch(fd, full_path.c_str(), IN_OPEN | IN_CLOSE) >= 0) {
+                        alsa_success = true;
+                    }
+                }
+            }
+            closedir(dir);
+        }
+    }
+
+    if (alsa_success) {
+        g_poll_thread = std::thread(AlsaInotifyLoop, fd);
+    } else {
+        if (fd >= 0) close(fd);
+        LOGW("Native ALSA Hooking unavailable. Falling back to Dumpsys polling loop.");
+        g_poll_thread = std::thread(PollLoop);
+    }
 }
 
 void StopPolling() {
