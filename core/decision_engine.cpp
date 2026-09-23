@@ -7,11 +7,21 @@
 #include "../cache/cache_cleaner.hpp"
 #include "../cache/state_storage.hpp"
 #include "../logging/logger.hpp"
+#include "../system/system_tweaks.hpp"
 
 namespace freshcore {
 namespace core {
 
 static void PerformMaintenance() {
+    // Run deep idle fstrim and crash log cleaning
+    cache::RunSystemMaintenanceSweeps();
+    
+    // Check if we got interrupted during sweeps
+    if (android::IsScreenOn()) {
+        TransitionTo(EngineState::ABORTING);
+        return;
+    }
+
     auto packages = android::GetInstalledPackages();
     std::vector<cache::CacheDirInfo> all_cache_dirs;
     
@@ -43,6 +53,10 @@ static void PerformMaintenance() {
     }
     
     // Finished successfully
+    
+    // Aggressively trigger doze mode right after cleaning
+    system_tweaks::OptimizeDoze();
+    
     TransitionTo(EngineState::ACTIVE); 
 }
 
@@ -52,6 +66,8 @@ void EvaluateAndTransition() {
 
     if (idle_state == power::IdleState::NOT_IDLE) {
         if (current != EngineState::ACTIVE) {
+            // Screen just turned on! Instantly snap out of doze to prevent lockscreen lag
+            system_tweaks::WakeFromDoze();
             TransitionTo(EngineState::ACTIVE);
         }
         return;

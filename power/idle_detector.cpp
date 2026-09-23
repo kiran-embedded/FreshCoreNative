@@ -11,16 +11,28 @@ namespace power {
 
 static uint64_t g_screen_off_time = 0;
 
+static uint64_t GetMonotonicTimeSec() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec;
+}
+
 IdleState EvaluateIdleState() {
     if (android::IsScreenOn()) {
         g_screen_off_time = 0;
         return IdleState::NOT_IDLE;
     }
     
-    // We don't have a monotonic clock readily available here, let's just assume 
-    // the state machine will handle the timing for now, or we can use time()
-    // For a real implementation, we'd check how long it's been off.
-    // The state machine in core/state.cpp will track the duration.
+    uint64_t now = GetMonotonicTimeSec();
+    if (g_screen_off_time == 0) {
+        g_screen_off_time = now;
+    }
+    
+    // Check if the strictly enforced idle delay has passed
+    uint64_t required_delay_sec = config::g_config.idle_delay_minutes * 60;
+    if (now - g_screen_off_time < required_delay_sec) {
+        return IdleState::SCREEN_OFF;
+    }
     
     // Are conditions safe?
     if (!IsBatterySafe()) return IdleState::SCREEN_OFF;

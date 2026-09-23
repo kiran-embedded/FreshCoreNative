@@ -1,0 +1,51 @@
+2866	BOOL	1	TX_AIF1_CAP Mixer DEC0                   Off
+2867	BOOL	1	TX_AIF1_CAP Mixer DEC1                   Off
+2868	BOOL	1	TX_AIF1_CAP Mixer DEC2                   Off
+2869	BOOL	1	TX_AIF1_CAP Mixer DEC3                   Off
+2870	BOOL	1	TX_AIF1_CAP Mixer DEC4                   Off
+2871	BOOL	1	TX_AIF1_CAP Mixer DEC5                   Off
+2872	BOOL	1	TX_AIF1_CAP Mixer DEC6                   Off
+2873	BOOL	1	TX_AIF1_CAP Mixer DEC7                   Off
+2882	ENUM	1	TX DMIC MUX0                             ZERO
+2883	ENUM	1	TX DMIC MUX1                             ZERO
+2884	ENUM	1	TX DMIC MUX2                             ZERO
+2885	ENUM	1	TX DMIC MUX3                             ZERO
+2886	ENUM	1	TX DMIC MUX4                             ZERO
+2887	ENUM	1	TX DMIC MUX5                             ZERO
+2888	ENUM	1	TX DMIC MUX6                             ZERO
+2889	ENUM	1	TX DMIC MUX7                             ZERO
+2890	ENUM	1	TX SMIC MUX0                             ZERO
+2891	ENUM	1	TX SMIC MUX1                             ZERO
+2892	ENUM	1	TX SMIC MUX2                             ZERO
+2893	ENUM	1	TX SMIC MUX3                             ZERO
+2894	ENUM	1	TX SMIC MUX4                             ZERO
+2895	ENUM	1	TX SMIC MUX5                             ZERO
+2896	ENUM	1	TX SMIC MUX6                             ZERO
+2897	ENUM	1	TX SMIC MUX7                             ZERO
+2898	ENUM	1	TX DEC0 MUX                              MSM_DMIC
+2899	ENUM	1	TX DEC1 MUX                              MSM_DMIC
+2900	ENUM	1	TX DEC2 MUX                              MSM_DMIC
+2901	ENUM	1	TX DEC3 MUX                              MSM_DMIC
+2902	ENUM	1	TX DEC4 MUX                              MSM_DMIC
+2903	ENUM	1	TX DEC5 MUX                              MSM_DMIC
+2904	ENUM	1	TX DEC6 MUX                              MSM_DMIC
+2905	ENUM	1	TX DEC7 MUX                              MSM_DMIC
+2906	INT	1	TX_DEC0 Volume                           84
+2907	INT	1	TX_DEC1 Volume                           84
+2908	INT	1	TX_DEC2 Volume                           84
+2909	INT	1	TX_DEC3 Volume                           84
+2910	INT	1	TX_DEC4 Volume                           84
+2911	INT	1	TX_DEC5 Volume                           84
+2912	INT	1	TX_DEC6 Volume                           84
+2913	INT	1	TX_DEC7 Volume                           84
+2929	ENUM	1	IIR0 INP0 MUX                            ZERO
+2930	ENUM	1	IIR0 INP1 MUX                            ZERO
+2931	ENUM	1	IIR0 INP2 MUX                            ZERO
+2932	ENUM	1	IIR0 INP3 MUX                            ZERO
+2933	ENUM	1	IIR1 INP0 MUX                            ZERO
+2934	ENUM	1	IIR1 INP1 MUX                            ZERO
+2935	ENUM	1	IIR1 INP2 MUX                            ZERO
+2936	ENUM	1	IIR1 INP3 MUX                            ZERO
+3401	ENUM	1	ADC2 MUX                                 INP2
+3402	BOOL	1	ADC1_MIXER Switch                        Off
+3403	BOOL	1	ADC2_MIXER Switch                        Off

@@ -1,5 +1,6 @@
 #include "thermal_monitor.hpp"
 #include "../logging/logger.hpp"
+#include "../config/config.hpp"
 #include <fstream>
 #include <dirent.h>
 #include <string>
@@ -30,6 +31,10 @@ static void DetectThermalZones() {
 }
 
 bool IsThermalSafe() {
+    if (!config::g_config.thermal_protection) {
+        return true; // User disabled thermal protection
+    }
+
     if (g_thermal_zones.empty()) {
         DetectThermalZones();
     }

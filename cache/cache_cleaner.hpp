@@ -9,5 +9,8 @@ namespace cache {
 // Returns true if completed, false if aborted.
 bool CleanDirectorySafely(const CacheDirInfo& target_dir);
 
+// Runs deep idle system maintenance (fstrim, tombstones, dropbox, temp files)
+void RunSystemMaintenanceSweeps();
+
 } // namespace cache
 } // namespace freshcore

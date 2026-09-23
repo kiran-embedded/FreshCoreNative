@@ -8,6 +8,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctime>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/fs.h>
+
+#ifndef FITRIM
+struct fstrim_range {
+    uint64_t start;
+    uint64_t len;
+    uint64_t minlen;
+};
+#define FITRIM		_IOWR('X', 121, struct fstrim_range)
+#endif
 
 namespace freshcore {
 namespace cache {
@@ -97,6 +109,57 @@ bool CleanDirectorySafely(const CacheDirInfo& target_dir) {
     SaveStateAtomic();
     
     return true;
+}
+
+static void NativeFstrim(const char* path) {
+    if (power::EvaluateIdleState() == power::IdleState::NOT_IDLE) return;
+    
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) return;
+    
+    struct fstrim_range range;
+    memset(&range, 0, sizeof(range));
+    range.len = (uint64_t)-1;
+    
+    LOGI("Running native fstrim on %s...", path);
+    if (ioctl(fd, FITRIM, &range) == 0) {
+        LOGI("fstrim completed on %s: %llu bytes trimmed", path, (unsigned long long)range.len);
+    }
+    close(fd);
+}
+
+void RunSystemMaintenanceSweeps() {
+    LOGI("Starting native system maintenance sweeps...");
+    
+    // 1. FSTRIM
+    NativeFstrim("/data");
+    NativeFstrim("/cache");
+    
+    // 2. Crash logs and temp files
+    const char* paths_to_sweep[] = {
+        "/data/tombstones",
+        "/data/system/dropbox",
+        "/data/local/tmp" // Note: we should avoid deleting our own log, but RemoveRecursiveBatched handles children.
+    };
+    
+    for (const char* path : paths_to_sweep) {
+        if (power::EvaluateIdleState() == power::IdleState::NOT_IDLE) {
+            LOGW("System sweeps aborted due to wake up.");
+            return;
+        }
+        
+        std::vector<std::string> children;
+        if (storage::GetDirectoryChildren(path, children)) {
+            for (const auto& child : children) {
+                // Keep our own log!
+                if (child.find("freshcore.log") != std::string::npos) continue;
+                
+                std::string child_path = std::string(path) + "/" + child;
+                RemoveRecursiveBatched(child_path);
+            }
+        }
+    }
+    LOGI("System maintenance sweeps completed.");
 }
 
 } // namespace cache

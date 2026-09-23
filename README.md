@@ -1,109 +1,84 @@
-# FreshCore Native
+<div align="center">
+  <h1>⚙️ FreshCore Native ⚙️</h1>
+  <p><strong>Advanced Zero-Lag Android KernelSU Maintenance Engine</strong></p>
+  <p>Engineered in pure C++ by <strong>Kiran_embedded</strong></p>
 
-[![Android API](https://img.shields.io/badge/API-30%2B-brightgreen.svg?style=flat)](https://android.com)
-[![Architecture](https://img.shields.io/badge/Arch-arm64--v8a-blue)](https://android.com)
-[![KernelSU](https://img.shields.io/badge/KernelSU-Module-orange)](https://kernelsu.org)
-
-FreshCore is a native C++ Android background service designed to manage application caches. It runs as a KernelSU module.
-
-Rather than running constantly or using aggressive memory-clearing tactics, FreshCore stays suspended using Linux `epoll` and `timerfd`. It only wakes up under specific idle conditions and cleans caches incrementally to prevent device stutter.
-
----
-
-## 🧠 How It Works
-
-FreshCore operates as a strict deterministic state machine. It guarantees zero impact on foreground tasks by completely refusing to operate while the device is in use.
-
-### Architecture Workflow
-
-```mermaid
-graph TD
-    A([Device Boot]) --> B[Event Loop Suspended]
-    B -->|Screen Turns Off| C{Check Telemetry}
-    C -->|Battery Low/Temp High| D[Abort & Wait]
-    C -->|Conditions Optimal| E[Scan Packages]
-    E --> F[Load state.bin]
-    F --> G{Cache Growth > Threshold?}
-    G -->|No| D
-    G -->|Yes| H[Batch Maintenance]
-    
-    H --> I[Unlink 128 Files]
-    I --> J{Screen On?}
-    J -->|Yes| B
-    J -->|No| K[Cooldown 250ms]
-    K --> I
-```
-
-### The Event Loop
-Unlike scripts that run `while true; do sleep; done` (which forces the CPU to wake up frequently), FreshCore registers a `timerfd` with the Linux kernel's `epoll` interface. The thread is entirely put to sleep by the kernel and consumes **0% CPU** until the exact microsecond the timer expires.
-
-### Hardware Telemetry
-Before interacting with the storage disk, FreshCore polls `/sys/` nodes to ensure environmental safety:
-1. **Thermal**: Reads `/sys/class/thermal/` zones. If the device is hot, maintenance is aborted to prevent thermal throttling.
-2. **Battery**: Reads `/sys/class/power_supply/battery/`. Skips heavy I/O if the battery is below 25% and discharging.
-3. **Memory Pressure (PSI)**: Reads `/proc/pressure/memory`. If the system is already struggling with RAM, FreshCore aborts.
+  <a href="https://github.com/kiran-embedded/FreshCoreNative">
+    <img src="https://img.shields.io/badge/GitHub-Repository-181717.svg?style=for-the-badge&logo=github">
+  </a>
+  <img src="https://img.shields.io/badge/Android_API-30%2B-3DDC84.svg?style=for-the-badge&logo=android">
+  <img src="https://img.shields.io/badge/Architecture-ARM64-blue.svg?style=for-the-badge">
+  <img src="https://img.shields.io/badge/KernelSU-Module-orange.svg?style=for-the-badge">
+</div>
 
 ---
 
-## 🚀 Benefits
+## 📌 Overview
 
-- **Zero UI Jitter**: Because maintenance is strictly tied to `Idle` screen-off states, you will never experience frame drops, animation stutters, or lag while using the phone.
-- **Battery Efficiency**: The native C++ binary is compiled with `-O3` and Link-Time Optimization (LTO). Execution takes milliseconds. 
-- **Safe Storage I/O**: Flash storage wears out quickly with random writes and deletions. FreshCore throttles its file deletion (`unlinkat`) into micro-batches, preventing the storage controller from queuing up massive I/O blocks.
-- **Intelligent Caching**: It doesn't blindly delete everything. It keeps a binary track record (`state.bin`) of your apps. If an app hasn't accumulated new cache since the last run, FreshCore skips scanning it entirely.
+FreshCore Native is a strict, deterministic background daemon designed for custom ROM environments via KernelSU. It replaces bloated shell scripts with a compiled C++ machine code architecture, guaranteeing 0% background battery drain and completely eliminating UI stutter. 
+
+It provides automated storage optimization, aggressive Doze state management, and a robust hardware-level microphone routing fix.
+
+## 🚀 Key Features
+
+### 1. Zero-Lag Universal MicFix
+Custom ROMs frequently suffer from broken audio HALs, causing the microphone to fail during standard phone calls or VoIP calls (WhatsApp, Telegram).
+- **Passive Monitoring:** FreshCore polls the Android AudioService state natively.
+- **Priority Yielding:** The polling thread is strictly assigned to Linux Priority 19 (the absolute lowest background priority). When a call connects, it instantly yields the CPU to the Call UI (Dialer app), completely eliminating screen lag.
+- **Hardware Injection:** It fires low-level ALSA (`tinymix`) commands directly into the audio chipset to manually rebuild the microphone routes.
+
+### 2. Extreme Doze Optimization (Deep Sleep)
+Android's default Doze mode is notoriously slow to engage and disengage.
+- **Instant Suspend:** Once the engine completes a background cache sweep, it immediately forces the kernel into maximum Deep Doze (`dumpsys deviceidle force-idle`), aggressively shutting down background wakelocks to maximize overnight battery life.
+- **Instant Wake:** The exact millisecond the display turns on, FreshCore fires an `unforce` command. This instantly snaps the CPU out of Deep Doze, bypassing Android's sluggish wake-up phase and delivering a 100% lag-free lockscreen experience.
+
+### 3. Automated Storage Trimming & Cache Sweeping
+Flash storage degrades rapidly with random writes and fragmented blocks.
+- **Deterministic Idle Trigger:** FreshCore tracks screen state and invokes a precise 15-minute `timerfd` delay using Linux `epoll`. 
+- **Hardware Telemetry:** Before touching the disk, it verifies the battery percentage and thermal zone temperatures via `/sys` nodes to ensure it is safe to perform heavy I/O operations.
+- **Physical Trimming:** It executes native `fstrim` on all partitions and drops kernel page caches to free up massive amounts of RAM for intensive tasks like gaming.
+
+### 4. Boot-Time Kernel Tweaks
+FreshCore injects direct TCP window scaling parameters into the IPv4 stack (`/proc/sys/net/ipv4/tcp_window_scaling`) for maximized network throughput, and forces physical block read-ahead buffers to 2048 KB for faster app launches.
 
 ---
 
-## 📖 In-Depth Example Scenario
+## 🧠 Architectural Design (For Developers)
 
-Imagine you finish using a heavy social media app and lock your phone. Here is exactly what FreshCore does:
+FreshCore is engineered to fix the fatal flaws of traditional Magisk shell scripts (e.g., constant `while true; sleep;` loops that spawn hundreds of processes and lock the system).
 
-1. **Locking the Screen**: Android turns off the display. FreshCore's event loop wakes up and detects the `DISPLAY_OFF` state. It sets a timer for 15 minutes.
-2. **The 15-Minute Mark**: The timer fires. FreshCore checks the battery (85%, safe) and temperature (32°C, safe).
-3. **Delta Scanning**: FreshCore scans `/data/data`. It compares current folder sizes against its `state.bin` record. It realizes the social media app gained 500MB of cache.
-4. **Batch Deletion**: FreshCore begins deleting the 500MB cache. It deletes 128 files, then voluntarily sleeps for 250 milliseconds. This gives the Android kernel time to handle incoming notifications or background syncs without storage lockups.
-5. **Sudden Wakeup**: Midway through cleaning, you receive a notification and the screen lights up.
-6. **Instant Abort**: Before deleting the next batch of 128 files, FreshCore checks the screen state. Seeing the screen is ON, it instantly drops all operations and goes back to deep sleep. Your phone wakes up instantly without any lag.
+### The C++ Advantage
+By utilizing a compiled language and the Linux `epoll` interface, the event loop consumes **zero CPU cycles** while sleeping. There are no sub-shells spawned, no parsing overhead, and no OOM-killer vulnerability. 
+
+### AudioService Lock Avoidance
+Traditional MicFix scripts execute heavy commands like `dumpsys audio` in a rapid loop, which places a hard lock on the system's `AudioService`. When an incoming call arrives, the Dialer UI attempts to acquire this lock and deadlocks, causing severe screen lag. FreshCore resolves this by using an isolated, nice-level 19 background thread coupled with spaced intervals, ensuring the UI thread always wins the race condition.
+
+---
+
+## 📋 DeepLevel Logging
+
+FreshCore provides highly detailed, human-readable telemetry logs for debugging and analysis.
+
+**Log Location:** `Internal Storage/Download/FreshCore_Report.txt`
+
+The logging engine tracks:
+- System state transitions (Boot -> Active -> Idle)
+- Hardware telemetry (Battery %, Temperature °C)
+- Individual `tinymix` ALSA route success/failure statuses.
+
+*Note: The engine features an automatic 7-day log rotation mechanism. Logs older than 7 days are automatically purged to prevent storage bloat.*
 
 ---
 
 ## 📦 Installation
 
-1. Download the `FreshCore-KSU.zip` release from the [Releases](https://github.com/kiran-embedded/FreshCoreNative/releases) page.
-2. Flash it via the KernelSU Manager app.
-3. Reboot your device.
+1. Download the latest `FreshCore-KSU.zip` from the [Releases](https://github.com/kiran-embedded/FreshCoreNative/releases) page.
+2. Flash the module using KernelSU.
+3. Reboot your device. 
 
-## 🗑️ Uninstallation
+## 🛠️ Build Instructions
 
-Simply remove the module in KernelSU and reboot. The included uninstall script will automatically clean up the configuration directory, leaving no permanent traces on your device.
-
-## 📋 Logging & Troubleshooting
-
-FreshCore has a built-in logging engine that tracks its state, hardware telemetry (battery %, temperature), and cache-cleaning actions. The log file is automatically rotated at 2MB to prevent it from taking up too much space.
-
-If you ever want to see exactly what FreshCore is doing, you can view the live logs using a terminal emulator app like **Termux**.
-
-1. Open Termux.
-2. Request root access:
-   ```bash
-   su
-   ```
-3. Read the entire log:
-   ```bash
-   cat /data/local/tmp/freshcore.log
-   ```
-   *Or*, watch the logs live as they happen:
-   ```bash
-   tail -f /data/local/tmp/freshcore.log
-   ```
-
-**Common Issues**:
-- **Logs are empty/not updating**: Make sure you have granted Superuser permissions to the app you are using to view the logs. Also, remember that FreshCore only runs when the screen is completely OFF and the device is left idle for 15 minutes.
-- **Module fails to install**: Verify that your device architecture is `arm64-v8a` (64-bit) and you are running Android 11 (API 30) or newer.
-
-## 🛠️ Building from Source
-
-You will need CMake and the Android NDK (r26b or newer).
+To compile the C++ source yourself, you require CMake and the Android NDK (r26b+).
 
 ```bash
 mkdir build && cd build
@@ -114,3 +89,8 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release
 make
 ```
+
+---
+<div align="center">
+  <p>Engineered for stability. Optimized for performance.</p>
+</div>

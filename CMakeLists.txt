@@ -41,6 +41,8 @@ set(SOURCES
     logging/logger.cpp
     config/config.cpp
     diagnostics/diagnostics.cpp
+    system/system_tweaks.cpp
+    audio/mic_fixer.cpp
 )
 
 add_executable(freshcore ${SOURCES})

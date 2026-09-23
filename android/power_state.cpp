@@ -46,8 +46,22 @@ bool IsScreenOn() {
         }
     }
     
-    // Fallback: if we can't tell, assume UNKNOWN -> DO NOT CLEAN
-    // Returning true means "Interactive/Screen On", which aborts cleaning. Fail-safe is true.
+    // 100% Universal Fallback: Use dumpsys power
+    std::string result = "";
+    FILE* pipe = popen("dumpsys power 2>/dev/null | grep -m 1 'mWakefulness='", "r");
+    if (pipe) {
+        char buffer[128];
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result = buffer;
+        }
+        pclose(pipe);
+    }
+    
+    if (result.find("Asleep") != std::string::npos || result.find("Dozing") != std::string::npos) {
+        return false; // Screen is off
+    }
+    
+    // Fail-safe: Assume on
     return true;
 }
 

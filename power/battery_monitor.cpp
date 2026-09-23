@@ -1,5 +1,6 @@
 #include "battery_monitor.hpp"
 #include "../logging/logger.hpp"
+#include "../config/config.hpp"
 #include <fstream>
 #include <string>
 
@@ -37,19 +38,30 @@ bool IsBatterySafe() {
         return false; // Fail-safe: if we don't know the battery, don't maintain
     }
     
+    std::ifstream stat_file(g_battery_status_path);
+    std::string status;
+    bool is_charging = false;
+    if (stat_file.is_open() && (stat_file >> status)) {
+        if (status == "Charging" || status == "Full") {
+            is_charging = true;
+        }
+    }
+
+    if (config::g_config.charging_preferred && !is_charging) {
+        // If charging is preferred but we are not charging, we can still run
+        // if battery is above the minimum threshold.
+    }
+    
+    // If charging, it's inherently safe
+    if (is_charging) return true;
+
     std::ifstream cap_file(g_battery_capacity_path);
     int capacity = 0;
     if (cap_file.is_open() && (cap_file >> capacity)) {
-        if (capacity > 20) { // arbitrary threshold
+        if (capacity > config::g_config.minimum_battery_percent) {
             return true;
-        }
-    }
-    
-    std::ifstream stat_file(g_battery_status_path);
-    std::string status;
-    if (stat_file.is_open() && (stat_file >> status)) {
-        if (status == "Charging" || status == "Full") {
-            return true;
+        } else {
+            LOGW("Aborting: Battery at %d%%, below minimum threshold of %d%%.", capacity, config::g_config.minimum_battery_percent);
         }
     }
     

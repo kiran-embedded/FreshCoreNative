@@ -1,6 +1,7 @@
 #include "package_scanner.hpp"
 #include "cache_policy.hpp"
 #include "state_storage.hpp"
+#include "../config/config.hpp"
 #include "../storage/filesystem.hpp"
 #include "../logging/logger.hpp"
 #include <sys/stat.h>
@@ -34,14 +35,26 @@ static unsigned long long GetDirectorySize(const std::string& dir_path) {
 std::vector<CacheDirInfo> ScanPackageCache(const android::PackageInfo& pkg) {
     std::vector<CacheDirInfo> cache_dirs;
     
+    // Honor configuration values
+    if (pkg.is_system && !config::g_config.include_system_apps) {
+        return cache_dirs;
+    }
+    if (!pkg.is_system && !config::g_config.include_user_apps) {
+        return cache_dirs;
+    }
+    
     // Look for typical cache dirs
     std::vector<std::string> candidates = {
         pkg.data_dir + "/cache",
         pkg.data_dir + "/code_cache"
     };
     
+    if (config::g_config.include_external_cache) {
+        candidates.push_back("/sdcard/Android/data/" + pkg.name + "/cache");
+    }
+    
     for (const auto& cand : candidates) {
-        if (IsValidCachePath(cand, pkg.data_dir)) {
+        if (IsValidCachePath(cand, pkg.data_dir) || cand.find("/sdcard/Android/data/") == 0) {
             struct stat st;
             // Stage 1: Just check if it exists and is a directory
             if (lstat(cand.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
