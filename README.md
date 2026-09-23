@@ -1,6 +1,6 @@
 <div align="center">
   <h1>⚙️ FreshCore Native ⚙️</h1>
-  <p><strong>Advanced Zero-Lag Android KernelSU Maintenance Engine</strong></p>
+  <p><strong>Advanced Android KernelSU Maintenance Engine</strong></p>
   <p>Engineered in pure C++ by <strong>Kiran_embedded</strong></p>
 
   <a href="https://github.com/kiran-embedded/FreshCoreNative">
@@ -21,7 +21,7 @@ It provides automated storage optimization, aggressive Doze state management, an
 
 ## 🚀 Key Features
 
-### 1. Zero-Lag Universal MicFix
+### 1. Universal MicFix
 Custom ROMs frequently suffer from broken audio HALs, causing the microphone to fail during standard phone calls or VoIP calls (WhatsApp, Telegram).
 - **Passive Monitoring:** FreshCore polls the Android AudioService state natively.
 - **Priority Yielding:** The polling thread is strictly assigned to Linux Priority 19 (the absolute lowest background priority). When a call connects, it instantly yields the CPU to the Call UI (Dialer app), completely eliminating screen lag.
@@ -111,7 +111,7 @@ tail -f /storage/emulated/0/Download/FreshCore_Report.txt
 ### Q: I see `FAILED: not supported` in my logs for some `tinymix` commands.
 **A:** This is 100% intentional and safe! Different devices route microphones through different audio channels (e.g., `ADC1` vs `ADC2`). FreshCore is designed to be **Universal**, so it tries both. Your phone's audio chip will simply reject the channel it doesn't have, and FreshCore will safely skip it and apply the correct one.
 
-### Q: How do I know the Zero-Lag engine is working?
+### Q: How do I know the background engine is working?
 **A:** When you wake your device, check the `FreshCore_Report.txt` log. You should immediately see a line stating: `Waking system from Doze to prevent lockscreen lag...`. This confirms the engine successfully fired the `dumpsys unforce` command the exact millisecond you touched your screen.
 
 ### Q: How do I uninstall FreshCore?
