@@ -9,20 +9,24 @@ namespace fs = std::filesystem;
 namespace freshcore {
 namespace system_tweaks {
 
-static void WriteToFile(const std::string& path, const std::string& val) {
+static bool WriteToFile(const std::string& path, const std::string& val) {
     std::ofstream f(path);
     if (f) {
         f << val;
+        return true;
     }
+    return false;
 }
 
 void ApplyBootTweaks() {
     LOGI("Applying Boot-Time System Tweaks...");
+    int success_count = 0;
+    int fail_count = 0;
 
     // 1. TCP Window Scaling & Memory Limits
-    WriteToFile("/proc/sys/net/ipv4/tcp_window_scaling", "1");
-    WriteToFile("/proc/sys/net/ipv4/tcp_rmem", "4096 87380 16777216");
-    WriteToFile("/proc/sys/net/ipv4/tcp_wmem", "4096 16384 16777216");
+    if (WriteToFile("/proc/sys/net/ipv4/tcp_window_scaling", "1")) success_count++; else fail_count++;
+    if (WriteToFile("/proc/sys/net/ipv4/tcp_rmem", "4096 87380 16777216")) success_count++; else fail_count++;
+    if (WriteToFile("/proc/sys/net/ipv4/tcp_wmem", "4096 16384 16777216")) success_count++; else fail_count++;
 
     // 2. I/O Storage Speed Boost (Read-Ahead Buffer)
     std::error_code ec;
@@ -31,7 +35,12 @@ void ApplyBootTweaks() {
             if (entry.is_directory(ec)) {
                 std::string path = entry.path().string() + "/queue/read_ahead_kb";
                 if (fs::exists(path, ec)) {
-                    WriteToFile(path, "2048");
+                    if (WriteToFile(path, "2048")) {
+                        success_count++;
+                    } else {
+                        fail_count++;
+                        LOGW("Failed to write to %s (Path locked by kernel)", path.c_str());
+                    }
                 }
             }
         }
@@ -45,7 +54,7 @@ void ApplyBootTweaks() {
         ") &"
     );
 
-    LOGI("Boot-Time System Tweaks applied.");
+    LOGI("Boot-Time Tweaks Finished: %d Applied Successfully, %d Failed (Locked/Missing)", success_count, fail_count);
 }
 
 void OptimizeDoze() {

@@ -32,11 +32,12 @@ bool Initialize(const std::string& log_file_path, size_t max_size_bytes) {
     g_log_path = log_file_path;
     g_max_size = max_size_bytes;
 
-    // 7-day Auto Delete Logic (7 * 24 * 60 * 60 = 604800 seconds)
+    // 3-day Auto Delete Logic (3 * 24 * 60 * 60 = 259200 seconds)
+    // Absolute Zero-CPU method: Checked only once at initialization.
     struct stat st;
     if (stat(log_file_path.c_str(), &st) == 0) {
         time_t now = time(nullptr);
-        if (now - st.st_mtime > 604800) {
+        if (now - st.st_mtime > 259200) {
             unlink(log_file_path.c_str());
             unlink((log_file_path + ".old").c_str());
         }
