@@ -167,7 +167,7 @@ static void AlsaInotifyLoop(int fd) {
     }
 
     char buffer[4096] __attribute__((aligned(__alignof__(struct inotify_event))));
-    bool active = false;
+    int stream_count = 0;
 
     while (g_running) {
         struct pollfd pfd = { fd, POLLIN, 0 };
@@ -188,19 +188,25 @@ static void AlsaInotifyLoop(int fd) {
             event = (const struct inotify_event *) ptr;
 
             if (event->mask & IN_OPEN) {
-                active = true;
-                LOGI("ALSA INTERCEPT: Capture Stream Opened! (0 ms delay)");
-                // Forcefully apply the fix every single time a stream opens.
-                // This guarantees Android can never overwrite it without us knowing.
-                ApplyPreInit();
-                ApplyMicFix();
-                ShowNotification();
-                LOGI("Hardware Primed and Ready natively!");
+                stream_count++;
+                // Only run the heavy MUTE/ROUTE logic on the VERY FIRST stream open.
+                // This completely prevents mid-call audio drops if a second app opens the mic.
+                if (stream_count == 1) {
+                    LOGI("ALSA INTERCEPT: Primary Capture Stream Opened! (0 ms delay)");
+                    ApplyPreInit();
+                    ApplyMicFix();
+                    ShowNotification();
+                    LOGI("Hardware Primed and Ready natively!");
+                } else {
+                    LOGI("ALSA INTERCEPT: Secondary stream opened. Ignoring to prevent mid-call stutter.");
+                }
             }
             if (event->mask & (IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)) {
-                if (active) {
-                    active = false;
-                    LOGI("ALSA INTERCEPT: Capture Stream Closed.");
+                if (stream_count > 0) {
+                    stream_count--;
+                    if (stream_count == 0) {
+                        LOGI("ALSA INTERCEPT: All Capture Streams Closed.");
+                    }
                 }
             }
         }
