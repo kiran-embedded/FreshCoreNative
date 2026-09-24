@@ -49,8 +49,9 @@ static bool RunTinymix(const std::string& control, const std::string& val1, cons
 
 static void ApplyPreInit() {
     // Wake up the hardware BEFORE the user hits answer!
-    RunTinymix("Voice Tx Mute", "0", "0", "0");
-    RunTinymix("Voip Tx Mute", "0", "0");
+    // FIX: Actively MUTE the transmission line first so the receiver doesn't hear the buggy default route's echo.
+    RunTinymix("Voice Tx Mute", "1", "1", "1");
+    RunTinymix("Voip Tx Mute", "1", "1");
     
     RunTinymix("TX_AIF1_CAP Mixer DEC0", "1");
     RunTinymix("TX_AIF1_CAP Mixer DEC1", "1");
@@ -78,6 +79,11 @@ static void ApplyMicFix() {
     RunTinymix("RX_RX0 Digital Volume", "84");
     RunTinymix("TX_DEC0 Volume", "84");
     RunTinymix("TX_DEC1 Volume", "84");
+    
+    // FIX: Now that the hardware routes are completely rebuilt and safe, UNMUTE the transmission line.
+    // This replaces the millisecond echo with absolute silence.
+    RunTinymix("Voice Tx Mute", "0", "0", "0");
+    RunTinymix("Voip Tx Mute", "0", "0");
 }
 
 static void ShowNotification() {
