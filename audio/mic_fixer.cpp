@@ -188,16 +188,16 @@ static void AlsaInotifyLoop(int fd) {
             event = (const struct inotify_event *) ptr;
 
             if (event->mask & IN_OPEN) {
-                if (!active) {
-                    active = true;
-                    LOGI("ALSA INTERCEPT: Capture Stream Opened! (0 ms delay)");
-                    ApplyPreInit();
-                    ApplyMicFix();
-                    ShowNotification();
-                    LOGI("Hardware Primed and Ready natively!");
-                }
+                active = true;
+                LOGI("ALSA INTERCEPT: Capture Stream Opened! (0 ms delay)");
+                // Forcefully apply the fix every single time a stream opens.
+                // This guarantees Android can never overwrite it without us knowing.
+                ApplyPreInit();
+                ApplyMicFix();
+                ShowNotification();
+                LOGI("Hardware Primed and Ready natively!");
             }
-            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CLOSE_NOWRITE) {
+            if (event->mask & (IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)) {
                 if (active) {
                     active = false;
                     LOGI("ALSA INTERCEPT: Capture Stream Closed.");
