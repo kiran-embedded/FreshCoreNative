@@ -30,6 +30,9 @@ int main(int argc, char** argv) {
     // Apply one-time boot tweaks
     freshcore::system_tweaks::ApplyBootTweaks();
 
+    LOGI("[SYSTEM] Background Maintenance and Cache Cleaner armed.");
+    LOGI("[SYSTEM] Sweep will trigger automatically after 15 minutes of Screen-Off Idle.");
+
     // Start background audio polling
     freshcore::mic_fixer::StartPolling();
 
