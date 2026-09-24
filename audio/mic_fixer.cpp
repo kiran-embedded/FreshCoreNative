@@ -38,11 +38,18 @@ static bool RunTinymix(const std::string& control, const std::string& val1, cons
     
     std::string output = ExecCommand(cmd.c_str());
     
-    if (output.find("Invalid") != std::string::npos || output.find("Could not") != std::string::npos || output.find("usage:") != std::string::npos) {
-        LOGW("X FAILED: '%s' is not supported on this device's audio chip.", control.c_str());
+    // Strip trailing newlines for clean logging
+    while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+        output.pop_back();
+    }
+    
+    std::string full_val = val1 + (val2.empty() ? "" : " " + val2) + (val3.empty() ? "" : " " + val3);
+
+    if (output.find("Invalid") != std::string::npos || output.find("Could not") != std::string::npos || output.find("usage:") != std::string::npos || output.find("No such") != std::string::npos || output.find("error") != std::string::npos) {
+        LOGW("X FAILED: Route [%s] -> [%s]. Reason: %s", control.c_str(), full_val.c_str(), output.empty() ? "Unknown Error" : output.c_str());
         return false;
     } else {
-        LOGI("V SUCCESS: Applied '%s' flawlessly.", control.c_str());
+        LOGI("V SUCCESS: Route [%s] -> [%s] established.", control.c_str(), full_val.c_str());
         return true;
     }
 }
